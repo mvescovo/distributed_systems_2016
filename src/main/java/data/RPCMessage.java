@@ -23,6 +23,9 @@ public class RPCMessage implements Serializable {
 
     public RPCMessage() {}
 
+    /*
+    * Get the length of the message for use with marshalling and unmarshalling.
+    * */
     int getLengthInBytes() {
         return 2 + 8 + 8 + 8 + 2 + (csv_data.length() * 2) + 2;
     }

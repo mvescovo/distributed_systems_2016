@@ -16,6 +16,9 @@ public class Message implements Serializable {
     private byte data[] = null;
     private int length = 0;
 
+    /*
+    * Perform the marshalling.
+    * */
     public void marshal(RPCMessage rpcMessage) {
 
         length = rpcMessage.getLengthInBytes();
@@ -53,6 +56,9 @@ public class Message implements Serializable {
         data = byteBuffer.array();
     }
 
+    /*
+    * Perform the unmarshalling.
+    * */
     public RPCMessage unMarshal() {
 
         RPCMessage rpcMessage = new RPCMessage();

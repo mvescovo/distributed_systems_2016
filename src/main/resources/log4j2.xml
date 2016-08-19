@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Configuration status="INFO">
+<Configuration status="WARN">
     <Appenders>
         <Console name="Console" target="SYSTEM_OUT">
             <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
         </Console>
     </Appenders>
     <Loggers>
-        <Logger name="server.TrackingServiceImpl" level="trace" additivity="false">
+        <Logger name="server.TrackingServiceImpl" level="warn" additivity="false">
             <AppenderRef ref="Console"/>
         </Logger>
-        <Logger name="client.TramClient" level="trace" additivity="false">
+        <Logger name="client.TramClient" level="warn" additivity="false">
             <AppenderRef ref="Console"/>
         </Logger>
         <Root level="error">

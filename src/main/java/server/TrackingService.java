@@ -13,5 +13,10 @@ import java.rmi.RemoteException;
 public interface TrackingService extends Remote {
 
     Message retrieveNextStop(Message message) throws RemoteException;
-    void updateTramLocation(Message message) throws RemoteException;
+    Message updateTramLocation(Message message) throws RemoteException;
+    int getTramId() throws RemoteException;
+    int getRoute(int tramId) throws RemoteException;
+    int getFirstStop(int route) throws RemoteException;
+    int getSecondStop(int route) throws RemoteException;
+    long getRPCId() throws RemoteException;
 }

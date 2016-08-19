@@ -4,7 +4,7 @@ import server.TrackingService;
 import server.TrackingServiceImpl;
 
 /**
- * Main class to run the application.
+ * Main class to start the server.
  *
  * @author michael
  */
