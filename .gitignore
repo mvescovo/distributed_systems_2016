@@ -14,4 +14,4 @@ gradle-app.setting
 # gradle/wrapper/gradle-wrapper.properties
 
 # Ignore Intellij files
-.idea/
+.idea/workspace.xml
