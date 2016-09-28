@@ -2,10 +2,9 @@ package client;
 
 import data.Message;
 import data.RPCMessage;
+import frontEndServer.ServerFrontEnd;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import server.TrackingService;
-import server.TrackingServiceImpl;
 
 import java.io.IOException;
 import java.rmi.NotBoundException;
@@ -18,8 +17,7 @@ import java.util.Random;
 
 import static data.RPCMessage.MessageType.REPLY;
 import static data.RPCMessage.MessageType.REQUEST;
-import static server.TrackingServiceImpl.MAX_SLEEP;
-import static server.TrackingServiceImpl.MIN_SLEEP;
+import static replicationManagerServer.ReplicationManagerImpl.*;
 
 /**
  * Client representing a tram, to connect and interact with the tracking service.
@@ -30,7 +28,7 @@ public class TramClient {
 
     private static final Logger logger = LogManager.getLogger(TramClient.class);
 
-    private TrackingService mTrackingService;
+    private ServerFrontEnd mFrontEnd;
     private int mTramId;
     private int mRoute;
     private int mPreviousStop;
@@ -46,30 +44,34 @@ public class TramClient {
     }
 
     /*
-    * Confire RMI on the client and get starting paramaters.
+    * Configure RMI on the client and get starting parameters.
     * */
     public void connectTramWithServer() {
-        logger.info("Connecting tram with server...");
+        logger.info("Connecting tram with replicationManagerServer front end...");
         int mPort = 9317;
         String mHost = "localhost";
-        String mUrl = "rmi://" + mHost + "/trackingServer/";
+        String mUrl = "rmi://" + mHost + "/serverFrontEnd/";
 
         try {
             Registry registry = LocateRegistry.getRegistry("localhost", mPort);
-            mTrackingService = (TrackingService) registry.lookup(mUrl);
+            mFrontEnd = (ServerFrontEnd) registry.lookup(mUrl);
         } catch (NotBoundException | IOException e) {
             e.printStackTrace();
         }
 
         try {
-            mTramId = mTrackingService.getTramId();
+            mTramId = mFrontEnd.getTramId();
+            logger.debug("tramId: " + mTramId);
             if (mTramId == -1) {
                 logger.warn("No tramID's available. Quitting...");
                 System.exit(-1);
             }
-            mRoute = mTrackingService.getRoute(mTramId);
-            mCurrentStop = mTrackingService.getFirstStop(mRoute);
-            mPreviousStop = mTrackingService.getSecondStop(mRoute);
+            mRoute = mFrontEnd.getRoute(mTramId);
+            logger.debug("route:" + mRoute);
+            mCurrentStop = mFrontEnd.getFirstStop(mRoute);
+            logger.debug("currentStop: "+ mCurrentStop);
+            mPreviousStop = mFrontEnd.getSecondStop(mRoute);
+            logger.debug("previousStop: " + mPreviousStop);
         } catch (RemoteException e) {
             e.printStackTrace();
         }
@@ -93,7 +95,7 @@ public class TramClient {
             mRequestId++;
             long RPCId = -1;
             try {
-                RPCId = mTrackingService.getRPCId();
+                RPCId = mFrontEnd.getRPCId();
             } catch (RemoteException e) {
                 logger.warn("Remote exception. Quitting...");
                 mServerResponding = false;
@@ -108,13 +110,13 @@ public class TramClient {
                 requestRPCMessage.setTransactionId(mTransactionId);
                 requestRPCMessage.setRPCId(RPCId);
                 requestRPCMessage.setRequestId(mRequestId);
-                requestRPCMessage.setProcedureId(TrackingServiceImpl.RETRIEVE_NEXT_STOP_PROCEDURE_ID);
+                requestRPCMessage.setProcedureId(RETRIEVE_NEXT_STOP_PROCEDURE_ID);
                 requestRPCMessage.setCsv_data(getRoute() + "," + getCurrentStop() + "," + getPreviousStop());
-                requestRPCMessage.setStatus(TrackingServiceImpl.SUCCESS_STATUS);
+                requestRPCMessage.setStatus(SUCCESS_STATUS);
                 requestMessage.marshal(requestRPCMessage);
 
                 try {
-                    responseMessage = mTrackingService.retrieveNextStop(requestMessage);
+                    responseMessage = mFrontEnd.retrieveNextStop(requestMessage);
                     RPCMessage rpcMessageReceived = responseMessage.unMarshal();
                     RPCMessage.MessageType type = rpcMessageReceived.getMessageType();
                     logger.info("type: " + type);
@@ -135,8 +137,8 @@ public class TramClient {
                             transactionId == mTransactionId &&
                             RPCIdReceived == RPCId &&
                             requestId == mRequestId &&
-                            procedureId == TrackingServiceImpl.RETRIEVE_NEXT_STOP_PROCEDURE_ID &&
-                            status == TrackingServiceImpl.SUCCESS_STATUS) {
+                            procedureId == RETRIEVE_NEXT_STOP_PROCEDURE_ID &&
+                            status == SUCCESS_STATUS) {
 
                         if (data != null) {
                             mNextStop = Integer.parseInt(data);
@@ -147,13 +149,13 @@ public class TramClient {
                                 String time = new SimpleDateFormat("h:mm a").format(new Date());
                                 System.out.println("The next stop is " + mNextStop + ", the current time is: " + time);
                             } else {
-                                System.out.println("Invalid next stop received from server. Retrying...");
+                                System.out.println("Invalid next stop received from replicationManagerServer. Retrying...");
                             }
                         } else {
                             logger.warn("Next stop unavailable.");
                         }
                     } else {
-                        System.out.println("Status from server is FAIL. Retrying...");
+                        System.out.println("Status from replicationManagerServer is FAIL. Retrying...");
                     }
                 } catch (RemoteException e) {
                     logger.warn("Remote exception. Quitting...");
@@ -187,7 +189,7 @@ public class TramClient {
 
                 RPCId = -1;
                 try {
-                    RPCId = mTrackingService.getRPCId();
+                    RPCId = mFrontEnd.getRPCId();
                 } catch (RemoteException e) {
                     logger.warn("Remote exception. Quitting...");
                     mServerResponding = false;
@@ -204,13 +206,13 @@ public class TramClient {
                 rpcMessageUpdateLocation.setTransactionId(mTransactionId);
                 rpcMessageUpdateLocation.setRPCId(RPCId);
                 rpcMessageUpdateLocation.setRequestId(mRequestId);
-                rpcMessageUpdateLocation.setProcedureId(TrackingServiceImpl.UPDATE_TRAM_LOCATION_PROCEDURE_ID);
+                rpcMessageUpdateLocation.setProcedureId(UPDATE_TRAM_LOCATION_PROCEDURE_ID);
                 rpcMessageUpdateLocation.setCsv_data(getRoute() + "," + mTramId + "," + getCurrentStop());
-                rpcMessageUpdateLocation.setStatus(TrackingServiceImpl.SUCCESS_STATUS);
+                rpcMessageUpdateLocation.setStatus(SUCCESS_STATUS);
                 updateLocationMessage.marshal(rpcMessageUpdateLocation);
 
                 try {
-                    updateLocationresponseMessage = mTrackingService.updateTramLocation(updateLocationMessage);
+                    updateLocationresponseMessage = mFrontEnd.updateTramLocation(updateLocationMessage);
                     RPCMessage rpcMessageReceived = updateLocationresponseMessage.unMarshal();
                     RPCMessage.MessageType type = rpcMessageReceived.getMessageType();
                     logger.info("type: " + type);
@@ -231,11 +233,11 @@ public class TramClient {
                             transactionId == mTransactionId &&
                             RPCIdReceived == RPCId &&
                             requestId == mRequestId &&
-                            procedureId == TrackingServiceImpl.UPDATE_TRAM_LOCATION_PROCEDURE_ID &&
-                            status == TrackingServiceImpl.SUCCESS_STATUS) {
+                            procedureId == UPDATE_TRAM_LOCATION_PROCEDURE_ID &&
+                            status == SUCCESS_STATUS) {
                         updateedTramLocation = true;
                     } else {
-                        System.out.println("Failed to update tram location on server. Retrying...");
+                        System.out.println("Failed to update tram location on replicationManagerServer. Retrying...");
                     }
                 } catch (RemoteException e) {
                     logger.warn("Remove exception. Quitting...");

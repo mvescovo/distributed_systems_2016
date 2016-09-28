@@ -6,7 +6,13 @@
         </Console>
     </Appenders>
     <Loggers>
-        <Logger name="server.TrackingServiceImpl" level="warn" additivity="false">
+        <Logger name="replicationManagerServer.ReplicationManagerImpl" level="warn" additivity="false">
+            <AppenderRef ref="Console"/>
+        </Logger>
+        <Logger name="replicationManagerServer.TrackingServiceImpl" level="warn" additivity="false">
+            <AppenderRef ref="Console"/>
+        </Logger>
+        <Logger name="replicationManagerServer.ServerFrontEndImpl" level="warn" additivity="false">
             <AppenderRef ref="Console"/>
         </Logger>
         <Logger name="client.TramClient" level="warn" additivity="false">
