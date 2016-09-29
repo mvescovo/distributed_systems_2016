@@ -49,6 +49,9 @@ public class ServerFrontEndImpl implements ServerFrontEnd {
         connectServerFrontEndWithReplicationManagers();
     }
 
+    /*
+    * Front end is a singleton. Use this to get an instance.
+    * */
     public static ServerFrontEndImpl getInstance() {
         if (uniqueInstance == null) {
             synchronized (ServerFrontEndImpl.class) {
@@ -100,6 +103,9 @@ public class ServerFrontEndImpl implements ServerFrontEnd {
         }
     }
 
+    /*
+    * Provide a list of available tracking services.
+    * */
     @Override
     public List<TrackingService> listTramService() {
         List<TrackingService> connectedRMs = new ArrayList<>();
@@ -122,6 +128,9 @@ public class ServerFrontEndImpl implements ServerFrontEnd {
         return connectedRMs;
     }
 
+    /*
+    * Connect to the specified replication manager.
+    * */
     private void connectToRm(String rm, ConnectedToRmCallback callback) {
         new Thread(() -> {
             while (!mConnected.get(rm)) {
@@ -142,6 +151,9 @@ public class ServerFrontEndImpl implements ServerFrontEnd {
         }).start();
     }
 
+    /*
+    * Print the status of all replication manager servers.
+    * */
     @Override
     public void printTrackingServiceAvailability() {
         for (String rm : mConnected.keySet()) {
@@ -155,6 +167,9 @@ public class ServerFrontEndImpl implements ServerFrontEnd {
         }
     }
 
+    /*
+    * Retrieve the next stop from available RM's and pass back to the client.
+    * */
     @Override
     public Message retrieveNextStop(Message message) throws RemoteException {
         List<TrackingService> availableTrackingServices = listTramService();
@@ -167,6 +182,9 @@ public class ServerFrontEndImpl implements ServerFrontEnd {
         return messageReply;
     }
 
+    /*
+    * Update tram location on all available RM's.
+    * */
     @Override
     public Message updateTramLocation(Message message) throws RemoteException {
         List<TrackingService> availableTrackingServices = listTramService();
