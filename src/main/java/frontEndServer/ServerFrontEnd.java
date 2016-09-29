@@ -13,7 +13,7 @@ import java.util.List;
 public interface ServerFrontEnd extends Remote {
 
     List<TrackingService> listTramService() throws RemoteException;
-    void printTrackingServiceAvailability(List<TrackingService> trackingServices) throws RemoteException;
+    void printTrackingServiceAvailability() throws RemoteException;
 
     int getTramId() throws RemoteException;
     int getRoute(int tramId) throws RemoteException;

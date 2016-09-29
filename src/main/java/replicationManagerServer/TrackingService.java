@@ -12,7 +12,6 @@ import java.rmi.RemoteException;
  */
 public interface TrackingService extends Remote {
 
-    boolean alive() throws RemoteException;
     Message retrieveNextStop(Message message) throws RemoteException;
     Message updateTramLocation(Message message) throws RemoteException;
 }

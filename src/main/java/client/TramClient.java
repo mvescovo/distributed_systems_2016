@@ -38,7 +38,7 @@ public class TramClient {
     private int mRequestId;
     private boolean mServerResponding = true;
 
-    public TramClient() {
+    private TramClient() {
         mTransactionId = 0;
         mRequestId = 0;
     }
@@ -46,7 +46,7 @@ public class TramClient {
     /*
     * Configure RMI on the client and get starting parameters.
     * */
-    public void connectTramWithServer() {
+    private void connectTramWithServer() {
         logger.info("Connecting tram with replicationManagerServer front end...");
         int mPort = 9317;
         String mHost = "localhost";
@@ -81,7 +81,7 @@ public class TramClient {
     /*
     * Start a tram going up and down it's route.
     * */
-    public void startTram() {
+    private void startTram() {
         logger.info("Starting tram...");
         System.out.println("Tram " + (mTramId + 1) + " on route " + mRoute + " starting at stop " + mCurrentStop + "" +
                 "." + "\n");
@@ -252,15 +252,17 @@ public class TramClient {
     * Main method to run a tram client.
     * */
     public static void main(String args[]) {
-        TramClient tramClient = new TramClient();
-        tramClient.connectTramWithServer();
-        tramClient.startTram();
+        new Thread(() -> {
+            TramClient tramClient = new TramClient();
+            tramClient.connectTramWithServer();
+            tramClient.startTram();
+        }).start();
     }
 
     /*
     * Setters and getters.
     * */
-    public int getRoute() {
+    private int getRoute() {
         return mRoute;
     }
 
@@ -268,7 +270,7 @@ public class TramClient {
         this.mRoute = mRoute;
     }
 
-    public int getPreviousStop() {
+    private int getPreviousStop() {
         return mPreviousStop;
     }
 
@@ -276,7 +278,7 @@ public class TramClient {
         this.mPreviousStop = mPreviousStop;
     }
 
-    public int getCurrentStop() {
+    private int getCurrentStop() {
         return mCurrentStop;
     }
 
@@ -291,4 +293,8 @@ public class TramClient {
     public void setNextStop(int mNextStop) {
         this.mNextStop = mNextStop;
     }
+}
+
+interface ClientCallback {
+    void onReply(Message message);
 }

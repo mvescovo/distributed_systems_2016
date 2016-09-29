@@ -29,13 +29,13 @@ public class ReplicationManagerImpl implements ReplicationManager, TrackingServi
     public static final short FAILURE_STATUS = -1;
     public static final int MIN_SLEEP = 10;
     public static final int MAX_SLEEP = 20;
-    private static final int NUM_ROUTES = 5;
+    public static final int NUM_ROUTES = 5;
     public static final int MAX_TRAMS_PER_ROUTE = 5;
 
     public static int[] tramRoutes = {1, 96, 101, 109, 112};
     public static Map<Integer, int[]> tramStops = new HashMap<>();
     public static Map<Integer, Boolean> tramIds = new HashMap<>();
-    private Map<Integer, Integer> tramLocation;
+    private Map<Integer, Integer> tramLocation = new HashMap<>();
     private int mPort;
     private String mName;
 
@@ -45,19 +45,17 @@ public class ReplicationManagerImpl implements ReplicationManager, TrackingServi
         tramStops.put(101, new int[]{123, 11, 22, 34, 5, 4, 7});
         tramStops.put(109, new int[]{88, 87, 85, 80, 9, 7, 2, 1});
         tramStops.put(112, new int[]{110, 123, 11, 22, 34, 33, 29, 4});
+
+        for (int i = 0; i < NUM_ROUTES * MAX_TRAMS_PER_ROUTE; i++) {
+            tramIds.put(i, false);
+        }
     }
 
     public ReplicationManagerImpl(int port, String name) {
         mPort = port;
         mName = name;
 
-        tramIds = new HashMap<>();
-        for (int i = 0; i < NUM_ROUTES * MAX_TRAMS_PER_ROUTE; i++) {
-            tramIds.put(i, false);
-        }
-
         System.out.println("Created replication manager server " + mName + " on port " + mPort + ", accepting connections...");
-        tramLocation = new HashMap<>();
 
         setupRMI(this);
     }
@@ -79,12 +77,11 @@ public class ReplicationManagerImpl implements ReplicationManager, TrackingServi
         }
     }
 
-    public boolean alive() throws RemoteException {
-        return true;
-    }
-
     @Override
     public Message retrieveNextStop(Message message) throws RemoteException {
+        if (message == null) {
+            return new Message();
+        }
         RPCMessage rpcMessageReceived = message.unMarshal();
         RPCMessage.MessageType type = rpcMessageReceived.getMessageType();
         logger.info("type: " + type);

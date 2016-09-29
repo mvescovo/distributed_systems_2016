@@ -27,22 +27,26 @@ public class ServerFrontEndImpl implements ServerFrontEnd {
     private static final Logger logger = LogManager.getLogger(ServerFrontEndImpl.class);
     private volatile static ServerFrontEndImpl uniqueInstance;
     private static Map<String, Integer> mReplicationManagers = new HashMap<>();
+    private static Map<String, Boolean> mConnected = new HashMap<>();
     private static Map<String, TrackingService> mTrackingServices = new HashMap<>();
-    private int mTramId;
-    private int mRoute;
-    private volatile long RPCId;
+    private boolean rmiSetup = false;
 
     static {
         mReplicationManagers.put("rm1", 9318);
         mReplicationManagers.put("rm2", 9319);
         mReplicationManagers.put("rm3", 9320);
+        mConnected.put("rm1", false);
+        mConnected.put("rm2", false);
+        mConnected.put("rm3", false);
     }
 
-    public ServerFrontEndImpl() {
+    private int mTramId;
+    private int mRoute;
+    private volatile long RPCId;
+
+    private ServerFrontEndImpl() {
         RPCId = 0;
         connectServerFrontEndWithReplicationManagers();
-        setupRMI(this);
-        System.out.println("Created frontend Server, accepting connections...");
     }
 
     public static ServerFrontEndImpl getInstance() {
@@ -57,7 +61,14 @@ public class ServerFrontEndImpl implements ServerFrontEnd {
     }
 
     /*
-     * Configure RMI on the replicationManagerServer.
+    * Main method to run the front end server.
+    * */
+    public static void main(String args[]) {
+        getInstance();
+    }
+
+    /*
+     * Configure RMI on the Frontend to accept clients.
      * */
     private void setupRMI(ServerFrontEnd serverFrontEnd) {
         int frontEndPort = 9317;
@@ -75,53 +86,79 @@ public class ServerFrontEndImpl implements ServerFrontEnd {
     }
 
     /*
-     * Configure RMI on the replicationManagerServer front end as a client of replication manager.
+     * Connect to replication manager servers.
      * */
     private void connectServerFrontEndWithReplicationManagers() {
-        // Connect required number of RM's as per spec.
         for (String rm : mReplicationManagers.keySet()) {
-            logger.info("Connecting frontend server with a replication manager server...");
-            int port = mReplicationManagers.get(rm);
-            String host = "localhost";
-            String url = "rmi://" + host + "/" + rm + "/";
-
-            try {
-                Registry registry = LocateRegistry.getRegistry("localhost", port);
-                TrackingService trackingService = (TrackingService) registry.lookup(url);
-                mTrackingServices.put(rm, trackingService);
-            } catch (NotBoundException | IOException e) {
-//                e.printStackTrace();
-            }
+            connectToRm(rm, connected -> {
+                if (!rmiSetup) {
+                    setupRMI(this);
+                    rmiSetup = true;
+                    System.out.println("Created frontend Server, accepting connections...");
+                }
+            });
         }
     }
 
     @Override
     public List<TrackingService> listTramService() {
-        List<TrackingService> availableTrackingServices = new ArrayList<>();
-
+        List<TrackingService> connectedRMs = new ArrayList<>();
         for (String rm : mTrackingServices.keySet()) {
             try {
-                if (mTrackingServices.get(rm).alive()) {
-                    availableTrackingServices.add(mTrackingServices.get(rm));
+                Message message = mTrackingServices.get(rm).retrieveNextStop(null);
+                if (message != null) {
+                    // RM is connected.
+                    connectedRMs.add(mTrackingServices.get(rm));
                 }
             } catch (RemoteException e) {
-                e.printStackTrace();
+                // RM is not connected.
+                mConnected.put(rm, false);
+                // Reconnect RM
+                connectToRm(rm, connected -> {
+                    // Reconnected.
+                });
             }
         }
-        return availableTrackingServices;
+        return connectedRMs;
+    }
+
+    private void connectToRm(String rm, ConnectedToRmCallback callback) {
+        new Thread(() -> {
+            while (!mConnected.get(rm)) {
+                int port = mReplicationManagers.get(rm);
+                String host = "localhost";
+                String url = "rmi://" + host + "/" + rm + "/";
+
+                try {
+                    Registry registry = LocateRegistry.getRegistry("localhost", port);
+                    TrackingService trackingService = (TrackingService) registry.lookup(url);
+                    mTrackingServices.put(rm, trackingService);
+                    mConnected.put(rm, true);
+                } catch (NotBoundException | IOException e) {
+                    // Could not connect to RM.
+                }
+            }
+            callback.onConnected(true);
+        }).start();
     }
 
     @Override
-    public void printTrackingServiceAvailability(List<TrackingService> trackingServices) {
-        for (int i = 1; i <= trackingServices.size(); i++) {
-            System.out.println("RM" + i + ": on");
+    public void printTrackingServiceAvailability() {
+        for (String rm : mConnected.keySet()) {
+            String status;
+            if (mConnected.get(rm)) {
+                status = "on";
+            } else {
+                status = "off";
+            }
+            System.out.println(rm.toUpperCase() + " is " + status);
         }
     }
 
     @Override
     public Message retrieveNextStop(Message message) throws RemoteException {
         List<TrackingService> availableTrackingServices = listTramService();
-        printTrackingServiceAvailability(availableTrackingServices);
+        printTrackingServiceAvailability();
 
         Message messageReply = new Message();
         for (TrackingService trackingService : availableTrackingServices) {
@@ -133,7 +170,7 @@ public class ServerFrontEndImpl implements ServerFrontEnd {
     @Override
     public Message updateTramLocation(Message message) throws RemoteException {
         List<TrackingService> availableTrackingServices = listTramService();
-        printTrackingServiceAvailability(availableTrackingServices);
+        printTrackingServiceAvailability();
 
         Message messageReply = new Message();
         for (TrackingService trackingService : availableTrackingServices) {
@@ -186,11 +223,12 @@ public class ServerFrontEndImpl implements ServerFrontEnd {
         RPCId++;
         return RPCId;
     }
+}
 
-    /*
-    * Main method to run the front end server.
-    * */
-    public static void main(String args[]) {
-        getInstance();
-    }
+interface ConnectedToRmCallback {
+    void onConnected(boolean connected);
+}
+
+interface FrontEndCallback {
+    void onReply(Message message);
 }
