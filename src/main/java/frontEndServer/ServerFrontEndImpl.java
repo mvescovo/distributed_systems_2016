@@ -228,7 +228,3 @@ public class ServerFrontEndImpl implements ServerFrontEnd {
 interface ConnectedToRmCallback {
     void onConnected(boolean connected);
 }
-
-interface FrontEndCallback {
-    void onReply(Message message);
-}
