@@ -171,14 +171,14 @@ public class ServerFrontEndImpl implements ServerFrontEnd {
     * Retrieve the next stop from available RM's and pass back to the client.
     * */
     @Override
-    public Message retrieveNextStop(Message message) throws RemoteException {
+    public synchronized Message retrieveNextStop(Message message) throws RemoteException {
         List<TrackingService> availableTrackingServices = listTramService();
         printTrackingServiceAvailability();
 
         Message messageReply = new Message();
-        for (TrackingService trackingService : availableTrackingServices) {
-            messageReply = trackingService.retrieveNextStop(message);
-        }
+            for (TrackingService trackingService : availableTrackingServices) {
+                messageReply = trackingService.retrieveNextStop(message);
+            }
         return messageReply;
     }
 
